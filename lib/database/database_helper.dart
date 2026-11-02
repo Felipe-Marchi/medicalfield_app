@@ -32,6 +32,7 @@ class DatabaseHelper {
   // Executa o script DDL de criação das tabelas locais quando o banco é criado.
   Future<void> _onCreate(Database db, int version) async {
     // 1. Tabela de Profissionais
+    // (Armazena dados do socorrista autenticado online para vinculação nos atendimentos offline. Não possui senha por segurança).
     await db.execute('''
       CREATE TABLE professionals (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
