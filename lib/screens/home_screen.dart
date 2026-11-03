@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/session_service.dart';
 import '../widgets/custom_app_bar.dart';
+import '../widgets/custom_bottom_bar.dart';
 import 'login_screen.dart';
 
 // Tela principal inicial do aplicativo pos-login.
@@ -14,6 +15,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final SessionService _sessionService = SessionService();
   String _professionalName = 'Carregando...';
+  int _selectedIndex = 0;
 
   @override
   void initState() {
@@ -38,6 +40,14 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // Titulos temporarios de validacao visual para cada aba
+  static const List<String> _tabNames = [
+    'Atendimentos',
+    'Pacientes',
+    'Medicamentos',
+    'Perfil',
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -55,7 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                'Sessão Ativa\n$_professionalName',
+                'Aba Selecionada: ${_tabNames[_selectedIndex]}',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 20,
@@ -63,24 +73,33 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              const Text(
-                'Sessão autenticada online com sucesso.\nO aplicativo está pronto para operar em modo offline.',
+              Text(
+                'Socorrista Ativo: $_professionalName',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey),
+                style: const TextStyle(color: Colors.grey),
               ),
               const SizedBox(height: 30),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.logout),
-                label: const Text('Sair da Sessão'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey.shade300,
-                  foregroundColor: Colors.black87,
+              if (_selectedIndex == 3)
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.logout),
+                  label: const Text('Sair da Sessão'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey.shade300,
+                    foregroundColor: Colors.black87,
+                  ),
+                  onPressed: _handleLogout,
                 ),
-                onPressed: _handleLogout,
-              ),
             ],
           ),
         ),
+      ),
+      bottomNavigationBar: CustomBottomBar(
+        selectedIndex: _selectedIndex,
+        onItemTapped: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
       ),
     );
   }
