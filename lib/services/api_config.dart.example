@@ -1,0 +1,5 @@
+// Modelo de configuracao de IP/URL da API REST Spring Boot.
+// Copie este arquivo para 'lib/services/api_config.dart' e informe o IP da sua rede Wi-Fi local ou da VM.
+class ApiConfig {
+  static String baseUrl = 'http://192.168.X.X:8080';
+}
