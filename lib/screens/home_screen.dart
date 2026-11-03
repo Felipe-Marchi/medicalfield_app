@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
-import '../services/session_service.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/custom_bottom_bar.dart';
-import 'login_screen.dart';
+import 'tabs/attendances_tab.dart';
+import 'tabs/medications_tab.dart';
+import 'tabs/patients_tab.dart';
+import 'tabs/profile_tab.dart';
 
-// Tela principal inicial do aplicativo pos-login.
+// Tela principal do aplicativo mantendo as barras superior e inferior fixas.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -13,85 +15,27 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final SessionService _sessionService = SessionService();
-  String _professionalName = 'Carregando...';
   int _selectedIndex = 0;
 
-  @override
-  void initState() {
-    super.initState();
-    _loadSessionInfo();
-  }
-
-  // Carrega as informacoes do socorrista armazenadas na sessao ativa.
-  Future<void> _loadSessionInfo() async {
-    final String? name = await _sessionService.getActiveProfessionalName();
-    setState(() {
-      _professionalName = name ?? 'Socorrista';
-    });
-  }
-
-  // Realiza o logout e encerra a sessao ativa.
-  Future<void> _handleLogout() async {
-    await _sessionService.clearSession();
-    if (!mounted) return;
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
-    );
-  }
-
-  // Titulos temporarios de validacao visual para cada aba
-  static const List<String> _tabNames = [
-    'Atendimentos',
-    'Pacientes',
-    'Medicamentos',
-    'Perfil',
+  // Lista das abas navegaveis no centro da tela
+  final List<Widget> _tabs = const [
+    // Aba 1: Painel de Atendimentos
+    AttendancesTab(),
+    // Aba 2: Lista de Pacientes
+    PatientsTab(),
+    // Aba 3: Catálogo de Medicamentos
+    MedicationsTab(),
+    // Aba 4: Perfil do Socorrista
+    ProfileTab(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const CustomAppBar(),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.check_circle_outline,
-                size: 70,
-                color: Colors.green,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Aba Selecionada: ${_tabNames[_selectedIndex]}',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Socorrista Ativo: $_professionalName',
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.grey),
-              ),
-              const SizedBox(height: 30),
-              if (_selectedIndex == 3)
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.logout),
-                  label: const Text('Sair da Sessão'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey.shade300,
-                    foregroundColor: Colors.black87,
-                  ),
-                  onPressed: _handleLogout,
-                ),
-            ],
-          ),
-        ),
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _tabs,
       ),
       bottomNavigationBar: CustomBottomBar(
         selectedIndex: _selectedIndex,
