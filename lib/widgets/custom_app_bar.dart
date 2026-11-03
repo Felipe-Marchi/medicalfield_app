@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../services/network_service.dart';
+import '../services/sync_service.dart';
 
 // Barra superior (AppBar) padronizada do aplicativo MedicalField.
-class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
+class CustomAppBar extends StatefulWidget implements PreferredSizeWidget {
   final String title;
   final VoidCallback? onSyncPressed;
 
@@ -16,12 +17,60 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 
   @override
+  State<CustomAppBar> createState() => _CustomAppBarState();
+}
+
+class _CustomAppBarState extends State<CustomAppBar> {
+  final SyncService _syncService = SyncService();
+  bool _isSyncing = false;
+
+  // Executa a rotina de sincronizacao de dados
+  Future<void> _handleSync(BuildContext context) async {
+    if (_isSyncing) return;
+
+    setState(() {
+      _isSyncing = true;
+    });
+
+    final messenger = ScaffoldMessenger.of(context);
+
+    try {
+      await _syncService.syncMedications();
+      if (!mounted) return;
+
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Sincronização realizada'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('$e'.replaceAll('Exception: ', '')),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSyncing = false;
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final networkService = NetworkService();
 
     return AppBar(
       title: Text(
-        title,
+        widget.title,
         style: const TextStyle(
           fontWeight: FontWeight.bold,
           color: Colors.white,
@@ -87,20 +136,24 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
         const SizedBox(width: 8),
 
-        // Botao de Sincronizar Dados (Atualmente visual)
-        IconButton(
-          icon: const Icon(Icons.sync, color: Colors.white),
-          tooltip: 'Sincronizar Dados',
-          onPressed: onSyncPressed ??
-              () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Sincronização de dados acionada.'),
-                    duration: Duration(seconds: 2),
+        // Botao de Sincronizar Dados
+        _isSyncing
+            ? const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12.0),
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
                   ),
-                );
-              },
-        ),
+                ),
+              )
+            : IconButton(
+                icon: const Icon(Icons.sync, color: Colors.white),
+                tooltip: 'Sincronizar Dados',
+                onPressed: widget.onSyncPressed ?? () => _handleSync(context),
+              ),
         const SizedBox(width: 8),
       ],
     );

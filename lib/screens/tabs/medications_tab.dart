@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/medication.dart';
 import '../../repositories/medication_repository.dart';
+import '../../services/sync_service.dart';
 
 // Conteudo da Aba de Medicamentos exibindo o catalogo salvo no SQLite local.
 class MedicationsTab extends StatefulWidget {
@@ -12,6 +13,7 @@ class MedicationsTab extends StatefulWidget {
 
 class _MedicationsTabState extends State<MedicationsTab> {
   final MedicationRepository _medicationRepository = MedicationRepository();
+  final SyncService _syncService = SyncService();
   List<Medication> _medications = [];
   bool _isLoading = true;
 
@@ -19,6 +21,14 @@ class _MedicationsTabState extends State<MedicationsTab> {
   void initState() {
     super.initState();
     _loadMedications();
+    // Ouve os eventos de sincronizacao concluida para atualizar a lista automaticamente
+    _syncService.addListener(_loadMedications);
+  }
+
+  @override
+  void dispose() {
+    _syncService.removeListener(_loadMedications);
+    super.dispose();
   }
 
   // Carrega a lista de medicamentos armazenados no banco local.
