@@ -15,7 +15,7 @@ class SyncService extends ChangeNotifier {
   final MedicationRepository _medicationRepository = MedicationRepository();
   final NetworkService _networkService = NetworkService();
 
-  // Baixa a lista de medicamentos da API REST e salva no banco de dados SQLite local.
+  // Baixa a lista de medicamentos da API REST, limpa e atualiza o banco de dados SQLite local.
   Future<void> syncMedications() async {
     // 1. Verifica se a conexao (real ou simulada) esta ativa
     if (!_networkService.isOnline) {
@@ -37,8 +37,8 @@ class SyncService extends ChangeNotifier {
             .map((item) => Medication.fromJson(item as Map<String, dynamic>))
             .toList();
 
-        // Salva os medicamentos no banco SQLite local
-        await _medicationRepository.saveMedications(medications);
+        // Limpa a tabela local e salva a lista atualizada trazida da API
+        await _medicationRepository.clearAndSaveMedications(medications);
 
         // Notifica as abas ativas para recarregarem os dados do SQLite instantaneamente
         notifyListeners();
