@@ -96,43 +96,63 @@ class _MedicationsTabState extends State<MedicationsTab> {
     return RefreshIndicator(
       onRefresh: _loadMedications,
       child: ListView.builder(
-        padding: const EdgeInsets.all(12.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
         itemCount: _medications.length,
         itemBuilder: (context, index) {
           final medication = _medications[index];
+          final hasConcentration = medication.concentration != null && medication.concentration!.trim().isNotEmpty;
+
           return Card(
-            elevation: 2,
-            margin: const EdgeInsets.symmetric(vertical: 6.0),
+            color: Colors.white,
+            elevation: 1,
+            margin: const EdgeInsets.symmetric(vertical: 5.0),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8.0),
+              side: BorderSide(color: Colors.grey.shade300, width: 0.8),
             ),
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: Colors.redAccent.shade100,
-                child: Text(
-                  medication.id != null ? '${medication.id}' : '-',
-                  style: const TextStyle(
-                    color: Colors.redAccent,
-                    fontWeight: FontWeight.bold,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Linha Superior: Nome do Medicamento em negrito e ID simples na direita
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          medication.name,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                      if (medication.id != null)
+                        Text(
+                          '#${medication.id}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
+                    ],
                   ),
-                ),
-              ),
-              title: Text(
-                medication.name,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-              subtitle: Text(
-                medication.concentration != null && medication.concentration!.isNotEmpty
-                    ? 'Concentração: ${medication.concentration}'
-                    : 'Sem concentração informada',
-                style: const TextStyle(color: Colors.grey),
-              ),
-              trailing: const Icon(
-                Icons.medical_services,
-                color: Colors.redAccent,
+                  const SizedBox(height: 6),
+
+                  // Linha Inferior: Concentracao em texto simples sem fundo
+                  Text(
+                    hasConcentration
+                        ? 'Concentração: ${medication.concentration}'
+                        : 'Sem concentração informada',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                ],
               ),
             ),
           );
