@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/session_service.dart';
+import '../widgets/custom_app_bar.dart';
 import 'login_screen.dart';
 
 // Tela principal inicial do aplicativo pos-login.
@@ -40,18 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('MedicalField - Início'),
-        backgroundColor: Colors.redAccent,
-        foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Sair',
-            onPressed: _handleLogout,
-          ),
-        ],
-      ),
+      appBar: const CustomAppBar(),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -77,6 +67,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 'Sessão autenticada online com sucesso.\nO aplicativo está pronto para operar em modo offline.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.grey),
+              ),
+              const SizedBox(height: 30),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.logout),
+                label: const Text('Sair da Sessão'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey.shade300,
+                  foregroundColor: Colors.black87,
+                ),
+                onPressed: _handleLogout,
               ),
             ],
           ),
