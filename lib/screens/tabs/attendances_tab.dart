@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../repositories/attendance_repository.dart';
 import '../../services/sync_service.dart';
@@ -88,10 +89,100 @@ class _AttendancesTabState extends State<AttendancesTab> {
     return Colors.grey;
   }
 
-  // Exibe o Modal/BottomSheet com as observacoes do Prontuario Medico.
+  // Converte a String/JSON dos medicamentos em uma lista limpa e formatada visualmente.
+  Widget _buildMedicationsList(String? rawJson) {
+    if (rawJson == null || rawJson.trim().isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.grey.shade300, width: 0.8),
+        ),
+        child: Text(
+          'Nenhum medicamento registrado neste atendimento.',
+          style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+        ),
+      );
+    }
+
+    try {
+      final decoded = jsonDecode(rawJson);
+      if (decoded is List && decoded.isNotEmpty) {
+        return Column(
+          children: decoded.map((item) {
+            String name = '';
+            String dose = '';
+
+            if (item is Map<String, dynamic>) {
+              name = (item['name'] ?? item['nome'] ?? '').toString();
+              dose = (item['dose'] ?? item['concentration'] ?? item['concentracao'] ?? '').toString();
+            } else {
+              name = item.toString();
+            }
+
+            return Container(
+              margin: const EdgeInsets.symmetric(vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade300, width: 0.8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.medication, size: 18, color: Colors.redAccent),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ),
+                  if (dose.isNotEmpty)
+                    Text(
+                      dose,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                ],
+              ),
+            );
+          }).toList(),
+        );
+      }
+    } catch (_) {}
+
+    // Fallback limpo caso o formato nao seja um JSON de lista
+    final cleanText = rawJson.replaceAll(RegExp(r'[\{\}\[\]"]'), '');
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade300, width: 0.8),
+      ),
+      child: Text(
+        cleanText,
+        style: TextStyle(fontSize: 14, color: Colors.grey.shade800),
+      ),
+    );
+  }
+
+  // Exibe o Modal/BottomSheet padronizado com as observacoes do Prontuario Medico.
   void _showRecordModal(BuildContext context, AttendanceItem item) {
     showModalBottomSheet(
       context: context,
+      backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -110,7 +201,7 @@ class _AttendancesTabState extends State<AttendancesTab> {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.blueGrey,
+                      color: Colors.black87,
                     ),
                   ),
                   IconButton(
@@ -125,22 +216,27 @@ class _AttendancesTabState extends State<AttendancesTab> {
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 15,
+                  color: Colors.black87,
                 ),
               ),
               const SizedBox(height: 12),
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade300, width: 0.8),
                 ),
                 child: Text(
                   item.medicalRecordObservations != null &&
                           item.medicalRecordObservations!.isNotEmpty
                       ? item.medicalRecordObservations!
                       : 'Nenhuma observação registrada para este paciente.',
-                  style: const TextStyle(fontSize: 14),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade800,
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -151,10 +247,11 @@ class _AttendancesTabState extends State<AttendancesTab> {
     );
   }
 
-  // Exibe o Modal/BottomSheet com os Medicamentos Administrados.
+  // Exibe o Modal/BottomSheet padronizado com os Medicamentos Administrados.
   void _showMedicationsModal(BuildContext context, AttendanceItem item) {
     showModalBottomSheet(
       context: context,
+      backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -173,7 +270,7 @@ class _AttendancesTabState extends State<AttendancesTab> {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.blueGrey,
+                      color: Colors.black87,
                     ),
                   ),
                   IconButton(
@@ -183,24 +280,7 @@ class _AttendancesTabState extends State<AttendancesTab> {
                 ],
               ),
               const Divider(),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  item.attendance.administeredMedications != null &&
-                          item.attendance.administeredMedications!.isNotEmpty
-                      ? item.attendance.administeredMedications!
-                      : 'Nenhum medicamento registrado neste atendimento.',
-                  style: const TextStyle(
-                    fontFamily: 'monospace',
-                    fontSize: 13,
-                  ),
-                ),
-              ),
+              _buildMedicationsList(item.attendance.administeredMedications),
               const SizedBox(height: 16),
             ],
           ),
@@ -253,7 +333,7 @@ class _AttendancesTabState extends State<AttendancesTab> {
     return RefreshIndicator(
       onRefresh: _loadAttendances,
       child: ListView.builder(
-        padding: const EdgeInsets.all(12.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
         itemCount: _items.length,
         itemBuilder: (context, index) {
           final item = _items[index];
@@ -261,56 +341,49 @@ class _AttendancesTabState extends State<AttendancesTab> {
           final triageColor = _getTriageColor(att.triageClassification);
 
           return Card(
-            elevation: 2,
-            margin: const EdgeInsets.symmetric(vertical: 8.0),
+            color: Colors.white,
+            elevation: 1,
+            margin: const EdgeInsets.symmetric(vertical: 5.0),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10.0),
+              borderRadius: BorderRadius.circular(8.0),
+              side: BorderSide(color: Colors.grey.shade300, width: 0.8),
             ),
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Cabecalho: Data/Hora + Triagem Badge + Status Sync
+                  // Linha Superior: Data/Hora no lado esquerdo + Badge de Status Sync no lado direito
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
                         _formatDateTime(att.attendanceDatetime),
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey.shade600,
                         ),
                       ),
+                      // Badge de Status da Sincronizacao (Enviado / Pendente)
                       Row(
                         children: [
-                          // Badge de Triagem
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: triageColor,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              att.triageClassification.toUpperCase(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                              ),
+                          Text(
+                            att.synchronized ? 'Sincronizado' : 'Pendente',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: att.synchronized
+                                  ? Colors.green.shade700
+                                  : Colors.orange.shade800,
                             ),
                           ),
-                          const SizedBox(width: 6),
-                          // Badge de Status da Sincronizacao (Enviado / Pendente)
+                          const SizedBox(width: 4),
                           Icon(
                             att.synchronized
                                 ? Icons.cloud_done
                                 : Icons.cloud_upload,
-                            size: 20,
+                            size: 18,
                             color: att.synchronized
                                 ? Colors.green
                                 : Colors.orange,
@@ -319,50 +392,101 @@ class _AttendancesTabState extends State<AttendancesTab> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
 
                   // Nome do Paciente e CPF
                   Text(
                     item.patientName,
                     style: const TextStyle(
-                      fontSize: 18,
+                      fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Colors.blueGrey,
+                      color: Colors.black87,
                     ),
                   ),
+                  const SizedBox(height: 2),
                   Text(
                     'CPF: ${_formatCpf(att.patientCpf)}',
-                    style: const TextStyle(color: Colors.grey, fontSize: 13),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.blueGrey.shade800,
+                    ),
                   ),
                   const Divider(height: 20),
 
-                  // Grid/Linha de Sinais Vitais
+                  // Secao Clinica de Atendimento: Triagem + Sinais Vitais
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _buildVitalSign('PA', att.bloodPressure ?? '--'),
-                      _buildVitalSign('Glasgow', '${att.glasgowScale}'),
-                      _buildVitalSign('Freq.', att.heartRate != null ? '${att.heartRate} bpm' : '--'),
-                      _buildVitalSign('Sat O2', att.oxygenSaturation != null ? '${att.oxygenSaturation}%' : '--'),
+                      // Badge de Triagem
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: triageColor,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          att.triageClassification.toUpperCase(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+
+                      // Sinais Vitais
+                      Expanded(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            _buildVitalSign('PA', att.bloodPressure ?? '--'),
+                            _buildVitalSign('Glasgow', '${att.glasgowScale}'),
+                            _buildVitalSign('Freq.', att.heartRate != null ? '${att.heartRate} bpm' : '--'),
+                            _buildVitalSign('Sat O2', att.oxygenSaturation != null ? '${att.oxygenSaturation}%' : '--'),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 14),
 
                   // Botoes de Acao: Medicamentos e Prontuario
                   Row(
                     children: [
                       Expanded(
                         child: OutlinedButton.icon(
-                          icon: const Icon(Icons.medical_services, size: 16),
-                          label: const Text('Medicamentos', style: TextStyle(fontSize: 12)),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                            side: BorderSide(color: Colors.grey.shade400, width: 0.8),
+                          ),
+                          icon: const Icon(Icons.medical_services, size: 14, color: Colors.blueGrey),
+                          label: const Text(
+                            'Medicamentos',
+                            style: TextStyle(fontSize: 11, color: Colors.black87),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                           onPressed: () => _showMedicationsModal(context, item),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 6),
                       Expanded(
                         child: OutlinedButton.icon(
-                          icon: const Icon(Icons.description, size: 16),
-                          label: const Text('Prontuário', style: TextStyle(fontSize: 12)),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                            side: BorderSide(color: Colors.grey.shade400, width: 0.8),
+                          ),
+                          icon: const Icon(Icons.description, size: 14, color: Colors.blueGrey),
+                          label: const Text(
+                            'Prontuário',
+                            style: TextStyle(fontSize: 11, color: Colors.black87),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                           onPressed: () => _showRecordModal(context, item),
                         ),
                       ),
@@ -383,13 +507,13 @@ class _AttendancesTabState extends State<AttendancesTab> {
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 11, color: Colors.grey),
+          style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
         ),
         const SizedBox(height: 2),
         Text(
           value,
           style: const TextStyle(
-            fontSize: 13,
+            fontSize: 12,
             fontWeight: FontWeight.bold,
             color: Colors.black87,
           ),
