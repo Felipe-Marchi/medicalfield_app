@@ -24,7 +24,7 @@ class _CustomAppBarState extends State<CustomAppBar> {
   final SyncService _syncService = SyncService();
   bool _isSyncing = false;
 
-  // Executa a rotina de sincronizacao de dados
+  // Executa a rotina de sincronizacao de dados completa
   Future<void> _handleSync(BuildContext context) async {
     if (_isSyncing) return;
 
@@ -35,7 +35,7 @@ class _CustomAppBarState extends State<CustomAppBar> {
     final messenger = ScaffoldMessenger.of(context);
 
     try {
-      await _syncService.syncMedications();
+      await _syncService.syncAllData();
       if (!mounted) return;
 
       messenger.showSnackBar(

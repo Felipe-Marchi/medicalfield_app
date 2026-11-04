@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/patient.dart';
 import '../../repositories/patient_repository.dart';
+import '../../services/sync_service.dart';
 
 // Conteudo da Aba de Pacientes exibindo a lista armazenada no SQLite local.
 class PatientsTab extends StatefulWidget {
@@ -12,6 +13,7 @@ class PatientsTab extends StatefulWidget {
 
 class _PatientsTabState extends State<PatientsTab> {
   final PatientRepository _patientRepository = PatientRepository();
+  final SyncService _syncService = SyncService();
   List<Patient> _patients = [];
   bool _isLoading = true;
 
@@ -19,6 +21,14 @@ class _PatientsTabState extends State<PatientsTab> {
   void initState() {
     super.initState();
     _loadPatients();
+    // Ouve os eventos de sincronizacao concluida para atualizar a lista automaticamente
+    _syncService.addListener(_loadPatients);
+  }
+
+  @override
+  void dispose() {
+    _syncService.removeListener(_loadPatients);
+    super.dispose();
   }
 
   // Carrega a lista de pacientes armazenados no banco local.
@@ -107,46 +117,72 @@ class _PatientsTabState extends State<PatientsTab> {
     return RefreshIndicator(
       onRefresh: _loadPatients,
       child: ListView.builder(
-        padding: const EdgeInsets.all(12.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
         itemCount: _patients.length,
         itemBuilder: (context, index) {
           final patient = _patients[index];
+
           return Card(
-            elevation: 2,
-            margin: const EdgeInsets.symmetric(vertical: 6.0),
+            color: Colors.white,
+            elevation: 1,
+            margin: const EdgeInsets.symmetric(vertical: 5.0),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8.0),
+              side: BorderSide(color: Colors.grey.shade300, width: 0.8),
             ),
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: Colors.blue.shade100,
-                child: const Icon(
-                  Icons.person,
-                  color: Colors.blue,
-                ),
-              ),
-              title: Text(
-                patient.name,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-              subtitle: Column(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 4),
-                  Text(
-                    'CPF: ${_formatCpf(patient.cpf)}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
+                  // Coluna Esquerda: Nome do Paciente e CPF destacado logo abaixo
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          patient.name,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'CPF: ${_formatCpf(patient.cpf)}',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.blueGrey.shade800,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Nascimento: ${_formatDate(patient.birthDate)} | Gênero: ${patient.gender ?? '-'}',
-                    style: const TextStyle(color: Colors.grey, fontSize: 13),
+                  const SizedBox(width: 12),
+
+                  // Coluna Direita: Data de Nascimento e Genero
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        _formatDate(patient.birthDate),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Gênero: ${patient.gender ?? '-'}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
