@@ -37,10 +37,10 @@ class MedicalRecord {
   }
 
   // Cria uma instância de MedicalRecord a partir do JSON da API.
-  factory MedicalRecord.fromJson(Map<String, dynamic> json, {required String patientCpf}) {
+  factory MedicalRecord.fromJson(Map<String, dynamic> json, {String? patientCpf}) {
     return MedicalRecord(
-      patientCpf: patientCpf,
-      openingDate: json['openingDate'] as String,
+      patientCpf: json['patientCpf'] as String? ?? patientCpf ?? '',
+      openingDate: json['openingDate'] as String? ?? '',
       observations: json['observations'] as String?,
     );
   }

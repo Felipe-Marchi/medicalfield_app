@@ -80,6 +80,22 @@ class AttendanceRepository {
     );
   }
 
+  // Salva uma lista de atendimentos baixados da API no SQLite local.
+  Future<void> saveAttendances(List<Attendance> attendances) async {
+    final db = await _dbHelper.database;
+    final batch = db.batch();
+
+    for (var attendance in attendances) {
+      batch.insert(
+        'attendances',
+        attendance.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+
+    await batch.commit(noResult: true);
+  }
+
   // Marca um atendimento como sincronizado (synchronized = 1).
   Future<void> markAsSynchronized(String patientCpf, String attendanceDatetime) async {
     final db = await _dbHelper.database;

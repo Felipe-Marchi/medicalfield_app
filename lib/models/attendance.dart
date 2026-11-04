@@ -70,19 +70,31 @@ class Attendance {
     };
   }
 
-  // Cria uma instancia de Attendance a partir do JSON da API REST.
-  factory Attendance.fromJson(Map<String, dynamic> json, {required String patientCpf, required String attendanceDatetime}) {
+  // Cria uma instancia de Attendance a partir do JSON da API REST Spring Boot.
+  factory Attendance.fromJson(Map<String, dynamic> json, {String? patientCpf, String? attendanceDatetime}) {
+    String cpf = patientCpf ?? '';
+    String datetime = attendanceDatetime ?? '';
+
+    if (json['id'] is Map<String, dynamic>) {
+      final idMap = json['id'] as Map<String, dynamic>;
+      cpf = idMap['patientCpf'] as String? ?? cpf;
+      datetime = idMap['attendanceDatetime'] as String? ?? datetime;
+    } else {
+      cpf = json['patientCpf'] as String? ?? cpf;
+      datetime = json['attendanceDatetime'] as String? ?? datetime;
+    }
+
     return Attendance(
-      patientCpf: patientCpf,
-      attendanceDatetime: attendanceDatetime,
-      professionalId: json['professionalId'] as int,
-      glasgowScale: json['glasgowScale'] as int,
-      triageClassification: json['triageClassification'] as String,
+      patientCpf: cpf,
+      attendanceDatetime: datetime,
+      professionalId: (json['professionalId'] as num).toInt(),
+      glasgowScale: (json['glasgowScale'] as num).toInt(),
+      triageClassification: json['triageClassification'] as String? ?? 'VERDE',
       bloodPressure: json['bloodPressure'] as String?,
-      heartRate: json['heartRate'] as int?,
-      oxygenSaturation: json['oxygenSaturation'] as int?,
+      heartRate: json['heartRate'] != null ? (json['heartRate'] as num).toInt() : null,
+      oxygenSaturation: json['oxygenSaturation'] != null ? (json['oxygenSaturation'] as num).toInt() : null,
       administeredMedications: json['administeredMedications'] as String?,
-      synchronized: true,
+      synchronized: json['synchronizedFlag'] as bool? ?? true,
     );
   }
 

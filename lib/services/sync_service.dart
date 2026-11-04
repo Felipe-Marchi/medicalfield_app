@@ -1,8 +1,12 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import '../models/attendance.dart';
+import '../models/medical_record.dart';
 import '../models/medication.dart';
 import '../models/patient.dart';
+import '../repositories/attendance_repository.dart';
+import '../repositories/medical_record_repository.dart';
 import '../repositories/medication_repository.dart';
 import '../repositories/patient_repository.dart';
 import 'api_config.dart';
@@ -16,9 +20,11 @@ class SyncService extends ChangeNotifier {
 
   final MedicationRepository _medicationRepository = MedicationRepository();
   final PatientRepository _patientRepository = PatientRepository();
+  final MedicalRecordRepository _medicalRecordRepository = MedicalRecordRepository();
+  final AttendanceRepository _attendanceRepository = AttendanceRepository();
   final NetworkService _networkService = NetworkService();
 
-  // Executa a sincronizacao completa de dados (Medicamentos e Pacientes).
+  // Executa a sincronizacao completa de dados da API para o dispositivo (Pull).
   Future<void> syncAllData() async {
     if (!_networkService.isOnline) {
       throw Exception('O aplicativo está em modo OFFLINE. Alterne para ONLINE no topo para sincronizar.');
@@ -26,6 +32,8 @@ class SyncService extends ChangeNotifier {
 
     await syncMedications(notify: false);
     await syncPatients(notify: false);
+    await syncMedicalRecords(notify: false);
+    await syncAttendances(notify: false);
 
     // Notifica todas as abas ativas para recarregarem os dados do SQLite instantaneamente
     notifyListeners();
@@ -85,7 +93,7 @@ class SyncService extends ChangeNotifier {
             .map((item) => Patient.fromJson(item as Map<String, dynamic>))
             .toList();
 
-        // Salva/atualiza a lista de pacientes no banco SQLite local (preservando cadastros)
+        // Salva/atualiza a lista de pacientes no banco SQLite local
         await _patientRepository.savePatients(patients);
 
         if (notify) notifyListeners();
@@ -94,6 +102,72 @@ class SyncService extends ChangeNotifier {
       }
     } catch (e) {
       throw Exception('Erro ao sincronizar pacientes: $e');
+    }
+  }
+
+  // Baixa a lista de prontuarios medicos da API REST e salva no banco local.
+  Future<void> syncMedicalRecords({bool notify = true}) async {
+    if (!_networkService.isOnline) {
+      throw Exception('O aplicativo está em modo OFFLINE. Alterne para ONLINE no topo para sincronizar.');
+    }
+
+    final String url = '${ApiConfig.baseUrl}/medical-records';
+
+    try {
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> jsonList = jsonDecode(response.body) as List<dynamic>;
+
+        final List<MedicalRecord> records = jsonList
+            .map((item) => MedicalRecord.fromJson(item as Map<String, dynamic>))
+            .toList();
+
+        // Salva/atualiza a lista de prontuarios no banco SQLite local
+        await _medicalRecordRepository.saveMedicalRecords(records);
+
+        if (notify) notifyListeners();
+      } else {
+        throw Exception('Falha ao buscar prontuários na API (Status ${response.statusCode})');
+      }
+    } catch (e) {
+      throw Exception('Erro ao sincronizar prontuários: $e');
+    }
+  }
+
+  // Baixa a lista de atendimentos da API REST e salva no banco local.
+  Future<void> syncAttendances({bool notify = true}) async {
+    if (!_networkService.isOnline) {
+      throw Exception('O aplicativo está em modo OFFLINE. Alterne para ONLINE no topo para sincronizar.');
+    }
+
+    final String url = '${ApiConfig.baseUrl}/attendances';
+
+    try {
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> jsonList = jsonDecode(response.body) as List<dynamic>;
+
+        final List<Attendance> attendances = jsonList
+            .map((item) => Attendance.fromJson(item as Map<String, dynamic>))
+            .toList();
+
+        // Salva/atualiza a lista de atendimentos no banco SQLite local
+        await _attendanceRepository.saveAttendances(attendances);
+
+        if (notify) notifyListeners();
+      } else {
+        throw Exception('Falha ao buscar atendimentos na API (Status ${response.statusCode})');
+      }
+    } catch (e) {
+      throw Exception('Erro ao sincronizar atendimentos: $e');
     }
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../repositories/attendance_repository.dart';
+import '../../services/sync_service.dart';
 
 // Conteudo da Aba de Atendimentos exibindo os registros salvos no SQLite local.
 class AttendancesTab extends StatefulWidget {
@@ -11,6 +12,7 @@ class AttendancesTab extends StatefulWidget {
 
 class _AttendancesTabState extends State<AttendancesTab> {
   final AttendanceRepository _attendanceRepository = AttendanceRepository();
+  final SyncService _syncService = SyncService();
   List<AttendanceItem> _items = [];
   bool _isLoading = true;
 
@@ -18,6 +20,14 @@ class _AttendancesTabState extends State<AttendancesTab> {
   void initState() {
     super.initState();
     _loadAttendances();
+    // Ouve os eventos de sincronizacao concluida para atualizar a lista automaticamente
+    _syncService.addListener(_loadAttendances);
+  }
+
+  @override
+  void dispose() {
+    _syncService.removeListener(_loadAttendances);
+    super.dispose();
   }
 
   // Carrega os atendimentos do SQLite local.
