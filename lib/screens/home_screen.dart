@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/custom_bottom_bar.dart';
+import 'attendance_form_screen.dart';
 import 'tabs/attendances_tab.dart';
 import 'tabs/medications_tab.dart';
 import 'tabs/patients_tab.dart';
@@ -36,6 +37,19 @@ class _HomeScreenState extends State<HomeScreen> {
       body: IndexedStack(
         index: _selectedIndex,
         children: _tabs,
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.redAccent,
+        foregroundColor: Colors.white,
+        tooltip: 'Novo Atendimento',
+        child: const Icon(Icons.add, size: 28),
+        onPressed: () async {
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => const AttendanceFormScreen(),
+            ),
+          );
+        },
       ),
       bottomNavigationBar: CustomBottomBar(
         selectedIndex: _selectedIndex,

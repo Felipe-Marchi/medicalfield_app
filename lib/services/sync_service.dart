@@ -24,6 +24,11 @@ class SyncService extends ChangeNotifier {
   final AttendanceRepository _attendanceRepository = AttendanceRepository();
   final NetworkService _networkService = NetworkService();
 
+  // Notifica todas as abas e ouvintes que os dados locais mudaram.
+  void notifyDataChanged() {
+    notifyListeners();
+  }
+
   // Executa a sincronizacao completa de dados da API para o dispositivo (Pull).
   Future<void> syncAllData() async {
     if (!_networkService.isOnline) {
