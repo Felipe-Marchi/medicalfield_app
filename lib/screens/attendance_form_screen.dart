@@ -92,7 +92,7 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
   final TextEditingController _observationsController = TextEditingController();
 
   // Controladores do Atendimento
-  String _selectedTriage = 'VERDE';
+  String? _selectedTriage;
   final TextEditingController _glasgowController = TextEditingController(text: '15');
   final TextEditingController _bpController = TextEditingController();
   final TextEditingController _hrController = TextEditingController();
@@ -107,14 +107,6 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
   bool _isSearchingPatient = false;
   bool _isPatientFound = false;
   bool _isSaving = false;
-
-  final List<String> _triageOptions = [
-    'VERMELHO',
-    'LARANJA',
-    'AMARELO',
-    'VERDE',
-    'AZUL',
-  ];
 
   @override
   void initState() {
@@ -298,7 +290,7 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
         attendanceDatetime: nowIso,
         professionalId: activeProfId,
         glasgowScale: int.tryParse(_glasgowController.text) ?? 15,
-        triageClassification: _selectedTriage,
+        triageClassification: _selectedTriage ?? 'VERDE',
         bloodPressure: _bpController.text.trim().isNotEmpty
             ? _bpController.text.trim()
             : null,
@@ -336,24 +328,6 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
           _isSaving = false;
         });
       }
-    }
-  }
-
-  // Retorna a cor para cada opcao de triagem
-  Color _getTriageColor(String triage) {
-    switch (triage) {
-      case 'VERMELHO':
-        return Colors.red;
-      case 'LARANJA':
-        return Colors.orange;
-      case 'AMARELO':
-        return Colors.amber.shade700;
-      case 'VERDE':
-        return Colors.green;
-      case 'AZUL':
-        return Colors.blue;
-      default:
-        return Colors.grey;
     }
   }
 
@@ -543,37 +517,105 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Classificação de Triagem:',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      children: _triageOptions.map((triage) {
-                        final isSelected = _selectedTriage == triage;
-                        final color = _getTriageColor(triage);
-                        return ChoiceChip(
-                          label: Text(
-                            triage,
-                            style: TextStyle(
-                              color: isSelected ? Colors.white : color,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 11,
-                            ),
+                    DropdownButtonFormField<String?>(
+                      isExpanded: true,
+                      initialValue: _selectedTriage,
+                      hint: const Text('Selecione a classificação'),
+                      decoration: const InputDecoration(
+                        labelText: 'Classificação de Triagem',
+                        prefixIcon: Icon(Icons.local_hospital),
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (val) {
+                        if (val == null || val.isEmpty) {
+                          return 'Por favor, selecione a classificação de triagem.';
+                        }
+                        return null;
+                      },
+                      items: const [
+                        DropdownMenuItem(
+                          value: 'VERMELHO',
+                          child: Row(
+                            children: [
+                              Icon(Icons.circle, color: Colors.red, size: 12),
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'VERMELHO - Emergência',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
                           ),
-                          selected: isSelected,
-                          selectedColor: color,
-                          backgroundColor: color.withAlpha(38),
-                          onSelected: (selected) {
-                            if (selected) {
-                              setState(() {
-                                _selectedTriage = triage;
-                              });
-                            }
-                          },
-                        );
-                      }).toList(),
+                        ),
+                        DropdownMenuItem(
+                          value: 'LARANJA',
+                          child: Row(
+                            children: [
+                              Icon(Icons.circle, color: Colors.orange, size: 12),
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'LARANJA - Muito Urgente',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: 'AMARELO',
+                          child: Row(
+                            children: [
+                              Icon(Icons.circle, color: Colors.amber, size: 12),
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'AMARELO - Urgente',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: 'VERDE',
+                          child: Row(
+                            children: [
+                              Icon(Icons.circle, color: Colors.green, size: 12),
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'VERDE - Pouco Urgente',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: 'AZUL',
+                          child: Row(
+                            children: [
+                              Icon(Icons.circle, color: Colors.blue, size: 12),
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'AZUL - Não Urgente',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) {
+                          setState(() {
+                            _selectedTriage = val;
+                          });
+                        }
+                      },
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
