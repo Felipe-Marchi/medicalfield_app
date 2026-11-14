@@ -498,7 +498,7 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
                   minLines: 4,
                   maxLines: 8,
                   decoration: const InputDecoration(
-                    hintText: 'Digite aqui as observações clínicas do paciente, histórico ou queixas...',
+                    hintText: 'Digite aqui as observações clínicas do paciente',
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -622,7 +622,7 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
                       controller: _glasgowController,
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
-                        labelText: 'Escala de Glasgow (nível de consciência de 3 a 15)',
+                        labelText: 'Escala de Glasgow',
                         prefixIcon: Icon(Icons.psychology),
                         border: OutlineInputBorder(),
                       ),
@@ -683,7 +683,7 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
                     if (_availableMedications.isNotEmpty)
                       DropdownButton<Medication>(
                         isExpanded: true,
-                        hint: const Text('Selecione um medicamento do catálogo'),
+                        hint: const Text('Selecione um medicamento'),
                         value: _selectedMedicationItem,
                         items: _availableMedications.map((med) {
                           return DropdownMenuItem<Medication>(
@@ -706,7 +706,7 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
                     TextFormField(
                       controller: _doseController,
                       decoration: const InputDecoration(
-                        labelText: 'Dose / Observação opcional (ex: 2mL, 1 ampola)',
+                        labelText: 'Observação (ex: 2mL, 1 ampola)',
                         prefixIcon: Icon(Icons.local_pharmacy),
                         border: OutlineInputBorder(),
                       ),
