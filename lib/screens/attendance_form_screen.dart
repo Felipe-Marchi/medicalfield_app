@@ -1,14 +1,18 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import '../models/attendance.dart';
 import '../models/medical_record.dart';
 import '../models/medication.dart';
 import '../models/patient.dart';
+import '../models/sync_request_dto.dart';
 import '../repositories/attendance_repository.dart';
 import '../repositories/medical_record_repository.dart';
 import '../repositories/medication_repository.dart';
 import '../repositories/patient_repository.dart';
+import '../services/api_config.dart';
+import '../services/network_service.dart';
 import '../services/session_service.dart';
 import '../services/sync_service.dart';
 import '../widgets/custom_button.dart';
@@ -80,6 +84,7 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
   final MedicationRepository _medicationRepository = MedicationRepository();
   final SessionService _sessionService = SessionService();
   final SyncService _syncService = SyncService();
+  final NetworkService _networkService = NetworkService();
 
   // Controladores do Paciente
   final TextEditingController _cpfController = TextEditingController();
@@ -247,7 +252,7 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
     });
   }
 
-  // Salva o paciente, prontuario e atendimento localmente no SQLite.
+  // Salva o paciente, prontuario e atendimento no SQLite local e envia a API se estiver ONLINE.
   Future<void> _saveAttendance() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -256,7 +261,7 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
     });
 
     final String cleanCpf = _cpfController.text.replaceAll(RegExp(r'\D'), '');
-    final String nowIso = DateTime.now().toIso8601String();
+    final String nowIso = DateTime.now().toIso8601String().split('.').first;
     final int activeProfId = (await _sessionService.getActiveProfessionalId()) ?? 1;
 
     try {
@@ -284,7 +289,7 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
           ? jsonEncode(_selectedMedications)
           : null;
 
-      // 4. Instancia e Salva o Atendimento no SQLite Local (synchronized = false)
+      // 4. Instancia e Salva o Atendimento no SQLite Local (inicialmente synchronized = false)
       final attendance = Attendance(
         patientCpf: cleanCpf,
         attendanceDatetime: nowIso,
@@ -297,9 +302,36 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
         heartRate: int.tryParse(_hrController.text),
         oxygenSaturation: int.tryParse(_o2Controller.text),
         administeredMedications: medsJson,
-        synchronized: false, // Marcado como pendente de envio para a nuvem
+        synchronized: false,
       );
       await _attendanceRepository.saveAttendance(attendance);
+
+      bool isSyncedNow = false;
+
+      // 5. Se o modo ONLINE estiver ativo, tenta enviar para a API Spring Boot imediatamente
+      if (_networkService.isOnline) {
+        try {
+          final syncDto = SyncRequestDTO(
+            patient: patient,
+            record: record,
+            attendance: attendance,
+          );
+
+          final String syncUrl = '${ApiConfig.baseUrl}/attendances/sync';
+          final response = await http.post(
+            Uri.parse(syncUrl),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(syncDto.toJson()),
+          ).timeout(const Duration(seconds: 8));
+
+          if (response.statusCode == 200 || response.statusCode == 201) {
+            await _attendanceRepository.markAsSynchronized(cleanCpf, nowIso);
+            isSyncedNow = true;
+          }
+        } catch (_) {
+          // Se houver oscilacao na rede, mantem como pendente no SQLite local sem travar o socorrista
+        }
+      }
 
       // Notifica o app para recarregar as abas reativas
       _syncService.notifyDataChanged();
@@ -307,8 +339,12 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Atendimento registrado localmente com sucesso!'),
+        SnackBar(
+          content: Text(
+            isSyncedNow
+                ? 'Atendimento registrado e sincronizado com a nuvem!'
+                : 'Atendimento registrado localmente com sucesso!',
+          ),
           backgroundColor: Colors.green,
         ),
       );
@@ -498,7 +534,7 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
                   minLines: 4,
                   maxLines: 8,
                   decoration: const InputDecoration(
-                    hintText: 'Digite aqui as observações clínicas do paciente',
+                    hintText: 'Digite aqui as observações clínicas do paciente, histórico ou queixas...',
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -525,6 +561,7 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
                         labelText: 'Classificação de Triagem',
                         prefixIcon: Icon(Icons.local_hospital),
                         border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
                       ),
                       validator: (val) {
                         if (val == null || val.isEmpty) {
@@ -536,75 +573,55 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
                         DropdownMenuItem(
                           value: 'VERMELHO',
                           child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.circle, color: Colors.red, size: 12),
-                              SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  'VERMELHO - Emergência',
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
+                              Icon(Icons.circle, color: Colors.red, size: 10),
+                              SizedBox(width: 6),
+                              Text('Emergência'),
                             ],
                           ),
                         ),
                         DropdownMenuItem(
                           value: 'LARANJA',
                           child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.circle, color: Colors.orange, size: 12),
-                              SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  'LARANJA - Muito Urgente',
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
+                              Icon(Icons.circle, color: Colors.orange, size: 10),
+                              SizedBox(width: 6),
+                              Text('Muito Urgente'),
                             ],
                           ),
                         ),
                         DropdownMenuItem(
                           value: 'AMARELO',
                           child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.circle, color: Colors.amber, size: 12),
-                              SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  'AMARELO - Urgente',
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
+                              Icon(Icons.circle, color: Colors.amber, size: 10),
+                              SizedBox(width: 6),
+                              Text('Urgente'),
                             ],
                           ),
                         ),
                         DropdownMenuItem(
                           value: 'VERDE',
                           child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.circle, color: Colors.green, size: 12),
-                              SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  'VERDE - Pouco Urgente',
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
+                              Icon(Icons.circle, color: Colors.green, size: 10),
+                              SizedBox(width: 6),
+                              Text('Pouco Urgente'),
                             ],
                           ),
                         ),
                         DropdownMenuItem(
                           value: 'AZUL',
                           child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.circle, color: Colors.blue, size: 12),
-                              SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  'AZUL - Não Urgente',
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
+                              Icon(Icons.circle, color: Colors.blue, size: 10),
+                              SizedBox(width: 6),
+                              Text('Não Urgente'),
                             ],
                           ),
                         ),
@@ -706,7 +723,7 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
                     TextFormField(
                       controller: _doseController,
                       decoration: const InputDecoration(
-                        labelText: 'Observação (ex: 2mL, 1 ampola)',
+                        labelText: 'Observação(ex: 2mL, 1 ampola)',
                         prefixIcon: Icon(Icons.local_pharmacy),
                         border: OutlineInputBorder(),
                       ),
@@ -758,7 +775,7 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
 
               // Botao Principal de Salvar Atendimento
               CustomButton(
-                text: 'SALVAR ATENDIMENTO LOCAL',
+                text: 'SALVAR ATENDIMENTO',
                 isLoading: _isSaving,
                 onPressed: _saveAttendance,
               ),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../database/database_helper.dart';
 import '../../services/session_service.dart';
+import '../../services/sync_service.dart';
 import '../login_screen.dart';
 
 // Conteudo da Aba de Perfil do socorrista autenticado.
@@ -38,6 +40,42 @@ class _ProfileTabState extends State<ProfileTab> {
     );
   }
 
+  // Limpa todos os dados locais do banco SQLite (atendimentos, pacientes, prontuarios e medicamentos).
+  Future<void> _handleClearLocalDatabase() async {
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Limpar Banco Local?'),
+        content: const Text(
+          'Esta ação apagará todos os dados salvos neste celular (Atendimentos, Pacientes, Prontuários e Medicamentos). Você poderá sincronizar tudo novamente em seguida.',
+        ),
+        actions: [
+          TextButton(
+            child: const Text('Cancelar'),
+            onPressed: () => Navigator.pop(context, false),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Limpar Dados'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await DatabaseHelper().clearAllData();
+      SyncService().notifyDataChanged();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Banco local limpo com sucesso! Toque em Sincronizar (🔄) no topo para recarregar.'),
+          backgroundColor: Colors.blue,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -70,6 +108,20 @@ class _ProfileTabState extends State<ProfileTab> {
               style: TextStyle(color: Colors.grey),
             ),
             const SizedBox(height: 32),
+            OutlinedButton.icon(
+              icon: const Icon(Icons.delete_sweep, color: Colors.orange),
+              label: const Text('Resetar Banco Local (Testes)'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.orange.shade900,
+                side: BorderSide(color: Colors.orange.shade300),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
+              ),
+              onPressed: _handleClearLocalDatabase,
+            ),
+            const SizedBox(height: 16),
             ElevatedButton.icon(
               icon: const Icon(Icons.logout),
               label: const Text('Sair da Sessão'),

@@ -88,4 +88,15 @@ class DatabaseHelper {
       )
     ''');
   }
+
+  // Limpa todas as tabelas do banco de dados SQLite local (reseta o banco do dispositivo).
+  Future<void> clearAllData() async {
+    final db = await database;
+    await db.transaction((txn) async {
+      await txn.delete('attendances');
+      await txn.delete('medical_records');
+      await txn.delete('patients');
+      await txn.delete('medications');
+    });
+  }
 }

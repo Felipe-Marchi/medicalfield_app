@@ -84,6 +84,11 @@ class Attendance {
       datetime = json['attendanceDatetime'] as String? ?? datetime;
     }
 
+    // Remove milissegundos para manter padronizada a chave primaria composta (patient_cpf, attendance_datetime)
+    if (datetime.contains('.')) {
+      datetime = datetime.split('.').first;
+    }
+
     return Attendance(
       patientCpf: cpf,
       attendanceDatetime: datetime,

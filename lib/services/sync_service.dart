@@ -5,6 +5,7 @@ import '../models/attendance.dart';
 import '../models/medical_record.dart';
 import '../models/medication.dart';
 import '../models/patient.dart';
+import '../models/sync_request_dto.dart';
 import '../repositories/attendance_repository.dart';
 import '../repositories/medical_record_repository.dart';
 import '../repositories/medication_repository.dart';
@@ -29,12 +30,16 @@ class SyncService extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Executa a sincronizacao completa de dados da API para o dispositivo (Pull).
+  // Executa a sincronizacao completa de duas vias (PUSH dos pendentes + PULL da nuvem).
   Future<void> syncAllData() async {
     if (!_networkService.isOnline) {
       throw Exception('O aplicativo está em modo OFFLINE. Alterne para ONLINE no topo para sincronizar.');
     }
 
+    // 1. Primeiro envia os atendimentos pendentes criados offline no dispositivo (PUSH)
+    await sendPendingAttendances();
+
+    // 2. Em seguida baixa os dados atualizados do servidor central (PULL)
     await syncMedications(notify: false);
     await syncPatients(notify: false);
     await syncMedicalRecords(notify: false);
@@ -42,6 +47,60 @@ class SyncService extends ChangeNotifier {
 
     // Notifica todas as abas ativas para recarregarem os dados do SQLite instantaneamente
     notifyListeners();
+  }
+
+  // Envia os atendimentos pendentes do celular para a API REST Spring Boot (PUSH).
+  Future<int> sendPendingAttendances() async {
+    if (!_networkService.isOnline) {
+      throw Exception('O aplicativo está em modo OFFLINE. Alterne para ONLINE no topo para sincronizar.');
+    }
+
+    final List<Attendance> pendingList = await _attendanceRepository.getUnsynchronizedAttendances();
+    if (pendingList.isEmpty) return 0;
+
+    int successCount = 0;
+    final String syncUrl = '${ApiConfig.baseUrl}/attendances/sync';
+
+    for (var attendance in pendingList) {
+      // Busca o paciente e o prontuario associado no banco local
+      final patient = await _patientRepository.getPatientByCpf(attendance.patientCpf);
+      final record = await _medicalRecordRepository.getMedicalRecordByCpf(attendance.patientCpf);
+
+      if (patient == null) continue;
+
+      final medicalRecord = record ?? MedicalRecord(
+        patientCpf: attendance.patientCpf,
+        openingDate: attendance.attendanceDatetime,
+        observations: null,
+      );
+
+      final syncDto = SyncRequestDTO(
+        patient: patient,
+        record: medicalRecord,
+        attendance: attendance,
+      );
+
+      try {
+        final response = await http.post(
+          Uri.parse(syncUrl),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(syncDto.toJson()),
+        ).timeout(const Duration(seconds: 10));
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          // Marca o atendimento como enviado (synchronized = 1) no SQLite local
+          await _attendanceRepository.markAsSynchronized(
+            attendance.patientCpf,
+            attendance.attendanceDatetime,
+          );
+          successCount++;
+        }
+      } catch (_) {
+        // Continua tentando enviar os proximos atendimentos
+      }
+    }
+
+    return successCount;
   }
 
   // Baixa a lista de medicamentos da API REST, limpa e atualiza o banco local.
