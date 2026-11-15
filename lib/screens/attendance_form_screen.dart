@@ -373,7 +373,7 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
       backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
         title: const Text(
-          'Novo Atendimento de Emergência',
+          'Novo Atendimento',
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
         backgroundColor: Colors.redAccent,
