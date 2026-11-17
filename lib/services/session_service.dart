@@ -7,9 +7,10 @@ class SessionService {
   static const String _keyProfessionalId = 'professional_id';
   static const String _keyProfessionalName = 'professional_name';
   static const String _keyProfessionalUsername = 'professional_username';
+  static const String _keyAuthToken = 'auth_token';
 
-  // Salva os dados da sessao do socorrista autenticado.
-  Future<void> saveSession(Professional professional) async {
+  // Salva os dados da sessao do socorrista autenticado e seu token HTTP Basic.
+  Future<void> saveSession(Professional professional, {String? authToken}) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyIsLoggedIn, true);
     if (professional.id != null) {
@@ -17,6 +18,9 @@ class SessionService {
     }
     await prefs.setString(_keyProfessionalName, professional.name);
     await prefs.setString(_keyProfessionalUsername, professional.username);
+    if (authToken != null && authToken.isNotEmpty) {
+      await prefs.setString(_keyAuthToken, authToken);
+    }
   }
 
   // Verifica se existe um socorrista com sessao ativa.
@@ -37,6 +41,12 @@ class SessionService {
     return prefs.getString(_keyProfessionalName);
   }
 
+  // Retorna o token de autenticacao HTTP Basic salvo na sessao para chamadas de API.
+  Future<String?> getAuthToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyAuthToken);
+  }
+
   // Encerra a sessao ativa do socorrista (Logout).
   Future<void> clearSession() async {
     final prefs = await SharedPreferences.getInstance();
@@ -44,5 +54,6 @@ class SessionService {
     await prefs.remove(_keyProfessionalId);
     await prefs.remove(_keyProfessionalName);
     await prefs.remove(_keyProfessionalUsername);
+    await prefs.remove(_keyAuthToken);
   }
 }

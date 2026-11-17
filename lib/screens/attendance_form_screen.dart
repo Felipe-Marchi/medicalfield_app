@@ -318,9 +318,17 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
           );
 
           final String syncUrl = '${ApiConfig.baseUrl}/attendances/sync';
+          final Map<String, String> headers = {
+            'Content-Type': 'application/json',
+          };
+          final String? token = await _sessionService.getAuthToken();
+          if (token != null && token.isNotEmpty) {
+            headers['Authorization'] = token;
+          }
+
           final response = await http.post(
             Uri.parse(syncUrl),
-            headers: {'Content-Type': 'application/json'},
+            headers: headers,
             body: jsonEncode(syncDto.toJson()),
           ).timeout(const Duration(seconds: 8));
 

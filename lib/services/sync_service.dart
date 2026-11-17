@@ -12,6 +12,7 @@ import '../repositories/medication_repository.dart';
 import '../repositories/patient_repository.dart';
 import 'api_config.dart';
 import 'network_service.dart';
+import 'session_service.dart';
 
 // Servico reativo responsavel pelas rotinas de sincronizacao de dados entre a API e o SQLite local.
 class SyncService extends ChangeNotifier {
@@ -24,6 +25,19 @@ class SyncService extends ChangeNotifier {
   final MedicalRecordRepository _medicalRecordRepository = MedicalRecordRepository();
   final AttendanceRepository _attendanceRepository = AttendanceRepository();
   final NetworkService _networkService = NetworkService();
+  final SessionService _sessionService = SessionService();
+
+  // Retorna os cabecalhos HTTP padrao incluindo a autenticacao HTTP Basic da sessao ativa.
+  Future<Map<String, String>> _getHeaders() async {
+    final headers = <String, String>{
+      'Content-Type': 'application/json',
+    };
+    final String? token = await _sessionService.getAuthToken();
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = token;
+    }
+    return headers;
+  }
 
   // Notifica todas as abas e ouvintes que os dados locais mudaram.
   void notifyDataChanged() {
@@ -60,6 +74,7 @@ class SyncService extends ChangeNotifier {
 
     int successCount = 0;
     final String syncUrl = '${ApiConfig.baseUrl}/attendances/sync';
+    final Map<String, String> headers = await _getHeaders();
 
     for (var attendance in pendingList) {
       // Busca o paciente e o prontuario associado no banco local
@@ -83,7 +98,7 @@ class SyncService extends ChangeNotifier {
       try {
         final response = await http.post(
           Uri.parse(syncUrl),
-          headers: {'Content-Type': 'application/json'},
+          headers: headers,
           body: jsonEncode(syncDto.toJson()),
         ).timeout(const Duration(seconds: 10));
 
@@ -110,11 +125,12 @@ class SyncService extends ChangeNotifier {
     }
 
     final String url = '${ApiConfig.baseUrl}/medications';
+    final Map<String, String> headers = await _getHeaders();
 
     try {
       final response = await http.get(
         Uri.parse(url),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
       ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
@@ -143,11 +159,12 @@ class SyncService extends ChangeNotifier {
     }
 
     final String url = '${ApiConfig.baseUrl}/patients';
+    final Map<String, String> headers = await _getHeaders();
 
     try {
       final response = await http.get(
         Uri.parse(url),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
       ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
@@ -176,11 +193,12 @@ class SyncService extends ChangeNotifier {
     }
 
     final String url = '${ApiConfig.baseUrl}/medical-records';
+    final Map<String, String> headers = await _getHeaders();
 
     try {
       final response = await http.get(
         Uri.parse(url),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
       ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
@@ -209,11 +227,12 @@ class SyncService extends ChangeNotifier {
     }
 
     final String url = '${ApiConfig.baseUrl}/attendances';
+    final Map<String, String> headers = await _getHeaders();
 
     try {
       final response = await http.get(
         Uri.parse(url),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
       ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
