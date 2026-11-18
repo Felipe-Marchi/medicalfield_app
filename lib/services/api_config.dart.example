@@ -1,5 +1,5 @@
-// Modelo de configuracao de IP/URL da API REST Spring Boot.
-// Copie este arquivo para 'lib/services/api_config.dart' e informe o IP da sua rede Wi-Fi local ou da VM.
+// Exemplo de classe de configuracao centralizada dos endpoints da API REST Spring Boot.
 class ApiConfig {
-  static String baseUrl = 'http://192.168.X.X:8080';
+  // IP da Maquina Virtual (VM) da universidade.
+  static String baseUrl = 'http://177.44.248.67:8080';
 }
