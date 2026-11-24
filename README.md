@@ -1,17 +1,13 @@
-# medicalfield_app
+# MedicalField - Aplicativo Móvel (Flutter)
 
-A new Flutter project.
+Aplicativo móvel offline-first desenvolvido em **Flutter / Dart** para o projeto **MedicalField** (Prontuário Médico de Emergência e Resgate Pré-Hospitalar).
 
-## Getting Started
 
-This project is a starting point for a Flutter application.
+## 🛠️ Tecnologias Utilizadas
 
-A few resources to get you started if this is your first Flutter project:
+- **Linguagem**: Dart
+- **Framework**: Flutter
+- **Banco de Dados Local**: SQLite (`sqflite`)
+- **Comunicação de Rede**: `http` (com cabeçalhos `Authorization: Basic`)
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+---
